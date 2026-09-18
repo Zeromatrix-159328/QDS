@@ -49,9 +49,11 @@ import {
   X,
   Zap,
   LogOut,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import LoginModal from "@/components/LoginModal";
 import { DemonstrationDesk } from "./DemonstrationDesk";
 import { apiClient } from "@/lib/apiClient";
 import { generateAiRemediation, AiRemediationResponse } from "@/lib/groqAiService";
@@ -197,6 +199,7 @@ function Sidebar({ location, isCollapsed, onToggle }: { location: string; isColl
 
 function Topbar({ eyebrow, title, subtitle, action, onNotifications }: { eyebrow: string; title: string; subtitle: string; action?: React.ReactNode; onNotifications?: () => void }) {
   const { unreadNotificationCount, toggleNotificationCenter, eveActive } = useSentinel();
+  const { user } = useAuth();
   const handleBellClick = onNotifications || toggleNotificationCenter;
 
   return (
@@ -213,6 +216,40 @@ function Topbar({ eyebrow, title, subtitle, action, onNotifications }: { eyebrow
       </div>
       <div className="topbar-actions">
         {action}
+        <button
+          className={cn("button button-small", user ? "button-quiet" : "button-copper")}
+          onClick={() => window.dispatchEvent(new CustomEvent("qds-open-login"))}
+          title={user ? `Operator: ${user.display_name} (${user.role}). Click to switch operator.` : "Sign into Quantum Operator Gateway"}
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+        >
+          {user ? (
+            <>
+              <span
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "3px",
+                  background: "var(--copper)",
+                  color: "#fff",
+                  fontSize: "9px",
+                  fontFamily: "var(--mono)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "bold",
+                }}
+              >
+                {user.avatar_text}
+              </span>
+              <span style={{ fontSize: "11px", fontWeight: 600 }}>{user.display_name}</span>
+            </>
+          ) : (
+            <>
+              <KeyRound size={13} />
+              <span>Operator Login</span>
+            </>
+          )}
+        </button>
         <div className="live-ping">
           <StatusDot /> <span>LIVE</span><strong>12ms</strong>
         </div>
@@ -582,9 +619,10 @@ function PhotonTrack({ id, from, to, tone, delay = "0s", speed = 1 }: { id: stri
 
 function HomePortal() {
   const { telemetryLogs } = useSentinel();
+  const { user } = useAuth();
   const [ticker, setTicker] = useState(0);
   useEffect(() => { const timer = setInterval(() => setTicker(t => t + 1), 3000); return () => clearInterval(timer); }, []);
-  return <div className="page-content portal-page"><Topbar eyebrow="00 / Switchboard" title="Trust is a measurable state." subtitle="QDS Sentinel / quantum signature assurance console" action={<Pill tone="good"><StatusDot /> gateway connected</Pill>} /><section className="hero-panel"><div className="hero-copy"><div className="hero-kicker"><span className="copper-line" /> quantum digital signatures / v1.0.0</div><h2>Prove authenticity<br /><em>under pressure.</em></h2><p>Observe the quantum protocol, surface an adversary, and keep every decision auditable from one calibrated console.</p><div className="hero-actions"><Link href="/demonstration" className="button button-copper"><Play size={15} fill="currentColor" /> Launch protocol demo <ArrowUpRight size={14} /></Link><Link href="/monitoring" className="button hero-secondary-action">Open live audit <ArrowUpRight size={14} /></Link><Link href="/transfer" className="button hero-secondary-action">Open transfer terminal <ArrowUpRight size={14} /></Link></div></div><div className="hero-art"><img src={HERO} alt="Abstract photon pulse crossing a dark optical channel" /><div className="hero-readout"><span>current assurance</span><strong>98.8%</strong><small>within tolerance</small></div></div><div className="hero-footnote">FIELD NOTE 001 <span>////</span> authenticated distribution is never assumed</div></section><section className="portal-grid"><SectionLabel index="01" eyebrow="Choose an instrument" title="Operator views" action={<span className="section-note">Two pathways / one source of truth</span>} /><div className="portal-cards"><Link href="/demonstration" className="portal-card portal-card-dark"><div className="card-number">01</div><div className="portal-card-visual"><div className="orbit orbit-a" /><div className="orbit orbit-b" /><div className="node node-a">A</div><div className="node node-b">B</div><div className="photon photon-one" /><div className="photon photon-two" /></div><div className="portal-card-body"><div className="eyebrow light">Interactive physics simulator</div><h3>Alice <span>↔</span> Bob</h3><p>Walk the six protocol phases from EPR pair distribution to the final CHSH audit gate.</p><div className="tag-row"><Pill tone="dark">EPR pairs</Pill><Pill tone="dark">BSM</Pill><Pill tone="dark">CHSH test</Pill></div><span className="card-cta">Enter demonstration <ArrowUpRight size={14} /></span></div></Link><Link href="/monitoring" className="portal-card portal-card-paper"><div className="card-number">02</div><div className="monitor-card-top"><div><div className="eyebrow">Forensic telemetry</div><h3>Security<br /><em>monitoring</em></h3></div><div className="alert-count"><span>open alerts</span><strong>01</strong></div></div><div className="mini-chart"><div className="font-mono text-[10px] space-y-1">{telemetryLogs.slice(0, 4).map((l, i) => <p key={i} className={l.isThreat ? "text-copper" : "text-slate-500"}>&gt; {l.source}: {l.text.slice(0, 30)}...</p>)}</div></div><div className="portal-card-body"><p>Track QBER boundaries, Bell non-locality, and the complete audit stream as sessions move through the network.</p><div className="tag-row"><Pill tone="blue">Hoeffding</Pill><Pill tone="copper">Quarantine</Pill><Pill>Session DB</Pill></div><span className="card-cta">Open live audit <ArrowUpRight size={14} /></span></div></Link></div></section><section className="cluster-strip"><div className="cluster-heading"><span className="eyebrow">Cluster status</span><strong>All systems observable</strong></div><div className="cluster-item"><span className="cluster-icon"><Radio size={15} /></span><div><span className="metric-label">Active session</span><strong>QKD-260827-91F4</strong></div></div><div className="cluster-item"><span className="cluster-icon"><Network size={15} /></span><div><span className="metric-label">Connected nodes</span><strong>04 / 04 online</strong></div></div><div className="cluster-item"><span className="cluster-icon"><LockKeyhole size={15} /></span><div><span className="metric-label">Channel integrity</span><strong>Authenticated</strong></div></div><div className="cluster-item cluster-item-accent"><span className="eyebrow">last sync</span><strong>11:48:09 <span>UTC</span></strong></div></section><section className="network-band"><div><SectionLabel index="02" eyebrow="Network map" title="Quantum links, made legible." /><p className="network-intro">A live topology of the authenticated channel. The visual layer stays quiet; the signal layer tells the story.</p><Link href="/monitoring" className="text-link">Inspect topology <ArrowUpRight size={14} /></Link></div><div className="network-visual"><img src={NETWORK} alt="Abstract quantum network topology" /><div className="network-node n-arb">ARBITRATOR<span>12ms</span></div><div className="network-node n-alice">ALICE<span>18ms</span></div><div className="network-node n-bob">BOB<span>20ms</span></div><div className="network-node n-eve">EVE<span>quarantined</span></div></div></section></div>;
+  return <div className="page-content portal-page"><Topbar eyebrow="00 / Switchboard" title="Trust is a measurable state." subtitle="QDS Sentinel / quantum signature assurance console" action={<Pill tone="good"><StatusDot /> gateway connected</Pill>} /><section className="hero-panel"><div className="hero-copy"><div className="hero-kicker"><span className="copper-line" /> quantum digital signatures / v1.0.0</div><h2>Prove authenticity<br /><em>under pressure.</em></h2><p>Observe the quantum protocol, surface an adversary, and keep every decision auditable from one calibrated console.</p><div className="hero-actions"><Link href="/demonstration" className="button button-copper"><Play size={15} fill="currentColor" /> Launch protocol demo <ArrowUpRight size={14} /></Link><button className="button button-outline" onClick={() => window.dispatchEvent(new CustomEvent('qds-open-login'))} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><KeyRound size={14} /> {user ? `Switch Operator (${user.display_name})` : "Operator Login"}</button><Link href="/monitoring" className="button hero-secondary-action">Open live audit <ArrowUpRight size={14} /></Link><Link href="/transfer" className="button hero-secondary-action">Open transfer terminal <ArrowUpRight size={14} /></Link></div></div><div className="hero-art"><img src={HERO} alt="Abstract photon pulse crossing a dark optical channel" /><div className="hero-readout"><span>current assurance</span><strong>98.8%</strong><small>within tolerance</small></div></div><div className="hero-footnote">FIELD NOTE 001 <span>////</span> authenticated distribution is never assumed</div></section><section className="portal-grid"><SectionLabel index="01" eyebrow="Choose an instrument" title="Operator views" action={<span className="section-note">Three pathways / one source of truth</span>} /><div className="portal-cards"><Link href="/demonstration" className="portal-card portal-card-dark"><div className="card-number">01</div><div className="portal-card-visual"><div className="orbit orbit-a" /><div className="orbit orbit-b" /><div className="node node-a">A</div><div className="node node-b">B</div><div className="photon photon-one" /><div className="photon photon-two" /></div><div className="portal-card-body"><div className="eyebrow light">Interactive physics simulator</div><h3>Alice <span>↔</span> Bob</h3><p>Walk the six protocol phases from EPR pair distribution to the final CHSH audit gate.</p><div className="tag-row"><Pill tone="dark">EPR pairs</Pill><Pill tone="dark">BSM</Pill><Pill tone="dark">CHSH test</Pill></div><span className="card-cta">Enter demonstration <ArrowUpRight size={14} /></span></div></Link><Link href="/monitoring" className="portal-card portal-card-paper"><div className="card-number">02</div><div className="monitor-card-top"><div><div className="eyebrow">Forensic telemetry</div><h3>Security<br /><em>monitoring</em></h3></div><div className="alert-count"><span>open alerts</span><strong>01</strong></div></div><div className="mini-chart"><div className="font-mono text-[10px] space-y-1">{telemetryLogs.slice(0, 4).map((l, i) => <p key={i} className={l.isThreat ? "text-copper" : "text-slate-500"}>&gt; {l.source}: {l.text.slice(0, 30)}...</p>)}</div></div><div className="portal-card-body"><p>Track QBER boundaries, Bell non-locality, and the complete audit stream as sessions move through the network.</p><div className="tag-row"><Pill tone="blue">Hoeffding</Pill><Pill tone="copper">Quarantine</Pill><Pill>Session DB</Pill></div><span className="card-cta">Open live audit <ArrowUpRight size={14} /></span></div></Link><div className="portal-card portal-card-paper" onClick={() => window.dispatchEvent(new CustomEvent('qds-open-login'))} style={{ cursor: 'pointer' }}><div className="card-number">00</div><div className="monitor-card-top"><div><div className="eyebrow">Cryptographic clearance</div><h3>Operator<br /><em>Gateway</em></h3></div><div className="alert-count" style={{ background: user ? 'rgba(47,111,133,0.1)' : 'rgba(185,74,47,0.1)' }}><span style={{ color: user ? 'var(--blue)' : 'var(--copper)' }}>status</span><strong style={{ color: user ? 'var(--blue)' : 'var(--copper)', fontSize: '11px' }}>{user ? 'AUTHENTICATED' : 'SIGN IN'}</strong></div></div><div className="portal-card-body"><p>{user ? `Authenticated as ${user.display_name} (${user.role}). Clearance: ${user.clearance}. Click to authenticate or switch operator profile.` : "Authenticate cryptographic terminal to access continuous optical telemetry, Bell non-locality verification, and post-quantum attestation routing."}</p><div className="tag-row"><Pill tone={user ? "good" : "copper"}>{user ? user.node_id : "FIDO2 / QKD Key"}</Pill><Pill tone="dark">1-Click Access</Pill><Pill>NIST FIPS 204</Pill></div><span className="card-cta">{user ? "Switch operator profile" : "Authenticate terminal"} <ArrowUpRight size={14} /></span></div></div></div></section><section className="cluster-strip"><div className="cluster-heading"><span className="eyebrow">Cluster status</span><strong>All systems observable</strong></div><div className="cluster-item"><span className="cluster-icon"><Radio size={15} /></span><div><span className="metric-label">Active session</span><strong>QKD-260827-91F4</strong></div></div><div className="cluster-item"><span className="cluster-icon"><Network size={15} /></span><div><span className="metric-label">Connected nodes</span><strong>04 / 04 online</strong></div></div><div className="cluster-item"><span className="cluster-icon"><LockKeyhole size={15} /></span><div><span className="metric-label">Channel integrity</span><strong>Authenticated</strong></div></div><div className="cluster-item cluster-item-accent"><span className="eyebrow">last sync</span><strong>11:48:09 <span>UTC</span></strong></div></section><section className="network-band"><div><SectionLabel index="02" eyebrow="Network map" title="Quantum links, made legible." /><p className="network-intro">A live topology of the authenticated channel. The visual layer stays quiet; the signal layer tells the story.</p><Link href="/monitoring" className="text-link">Inspect topology <ArrowUpRight size={14} /></Link></div><div className="network-visual"><img src={NETWORK} alt="Abstract quantum network topology" /><div className="network-node n-arb">ARBITRATOR<span>12ms</span></div><div className="network-node n-alice">ALICE<span>18ms</span></div><div className="network-node n-bob">BOB<span>20ms</span></div><div className="network-node n-eve">EVE<span>quarantined</span></div></div></section></div>;
 }
 
 function MonitoringPage() {
@@ -3923,9 +3961,16 @@ function BackToTopButton() {
 
 export default function Home() {
   const [location] = useLocation();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
     return localStorage.getItem("qds_rail_collapsed") === "true";
   });
+
+  useEffect(() => {
+    const handleOpenLogin = () => setIsLoginModalOpen(true);
+    window.addEventListener("qds-open-login", handleOpenLogin);
+    return () => window.removeEventListener("qds-open-login", handleOpenLogin);
+  }, []);
 
   const toggleRail = () => {
     setIsRailCollapsed((prev) => {
@@ -3943,6 +3988,7 @@ export default function Home() {
   const isChromeFree = isPortal || isSandbox || isTransfer;
   return (
     <div className={cn("app-shell", isPortal && "app-shell-portal", isSandbox && "app-shell-sandbox", isTransfer && "app-shell-transfer", isRailCollapsed && "rail-is-collapsed")}>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       {!isChromeFree && <Sidebar location={location} isCollapsed={isRailCollapsed} onToggle={toggleRail} />}
       <main className="main-shell">
 

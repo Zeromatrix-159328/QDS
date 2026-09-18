@@ -52,8 +52,8 @@ export default function App() {
                 <NotificationCenterDrawer />
                 <Switch>
                   <Route path="/login" component={LoginPage} />
-                  <Route path="/" component={() => <ProtectedRoute component={Home} />} />
-                  <Route path="/home" component={() => <ProtectedRoute component={Home} />} />
+                  <Route path="/" component={Home} />
+                  <Route path="/home" component={Home} />
                   <Route path="/demonstration" component={() => <ProtectedRoute component={Home} />} />
                   <Route path="/monitoring" component={() => <ProtectedRoute component={Home} />} />
                   <Route path="/attack-sandbox" component={() => <ProtectedRoute component={Home} />} />
