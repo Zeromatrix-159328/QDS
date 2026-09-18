@@ -78,8 +78,8 @@ class Settings(BaseSettings):
     # Content Security Policy (CSP)
     CSP_HEADER: str = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self' http://localhost:* http://127.0.0.1:* ws: wss:; "

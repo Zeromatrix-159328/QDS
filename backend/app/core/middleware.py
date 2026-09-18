@@ -196,6 +196,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response: Response = await call_next(request)
 
+        # Do not block Swagger UI / ReDoc CDN assets on documentation endpoints
+        if request.url.path in ("/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"):
+            return response
+
         # Instate browser attack mitigations
         response.headers["Content-Security-Policy"] = settings.CSP_HEADER
         response.headers["X-Frame-Options"] = "DENY"
