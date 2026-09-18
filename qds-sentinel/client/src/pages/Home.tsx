@@ -169,28 +169,26 @@ function Sidebar({ location, isCollapsed, onToggle }: { location: string; isColl
         <div className="rail-status-value">3001 <span>OK</span></div>
         <div className="rail-status-meta">12ms round trip <span>↗</span></div>
       </div>
-      <div className="rail-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-          <div className="avatar" style={{ backgroundColor: user?.avatar_bg ? undefined : undefined }}>
-            {user?.avatar_text || "AS"}
-          </div>
-          <div className="operator-info" style={{ minWidth: 0, overflow: 'hidden' }}>
-            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.display_name || "Anisha S"}
-            </strong>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.role || "Security operator"}
-            </span>
-          </div>
+      <div className="rail-footer">
+        <div className="avatar" title={`Operator: ${user?.display_name || "Anisha S"}`}>
+          {user?.avatar_text || "AS"}
+        </div>
+        <div className="operator-info">
+          <strong>
+            {user?.display_name || "Anisha S"}
+          </strong>
+          <span>
+            {user?.role || "Security operator"}
+          </span>
         </div>
         <button
-          className="icon-button"
+          type="button"
+          className="icon-button rail-logout-btn"
           onClick={handleSignOut}
           title="Sign out of Quantum Terminal"
           aria-label="Sign out"
-          style={{ padding: '6px', color: 'var(--slate)' }}
         >
-          <LogOut size={15} />
+          <LogOut size={14} />
         </button>
       </div>
     </aside>

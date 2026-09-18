@@ -161,6 +161,7 @@ button:not(:disabled), a { cursor: pointer; }
 .operator-rail-collapsed .rail-back .nav-label-text,
 .operator-rail-collapsed .rail-status-card,
 .operator-rail-collapsed .operator-info,
+.operator-rail-collapsed .rail-logout-btn,
 .operator-rail-collapsed .settings-icon,
 .operator-rail-collapsed .nav-label-text {
   opacity: 0 !important;
@@ -233,12 +234,13 @@ button:not(:disabled), a { cursor: pointer; }
 .rail-status-value { margin: 10px 0 4px; font: 22px var(--mono); letter-spacing: -.08em; }
 .rail-status-value span { color: #77ad8b; font-size: 11px; letter-spacing: .04em; }
 .rail-status-meta { display: flex; justify-content: space-between; color: #6e7778; font-size: 9px; letter-spacing: .04em; }
-.rail-status-meta span { color: var(--copper); }
 .rail-footer { display: flex; align-items: center; gap: 9px; padding-top: 19px; margin-top: 17px; border-top: 1px solid var(--line-dark); }
-.rail-footer > div:not(.avatar) { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.rail-footer strong { font-size: 11px; font-weight: 500; }
-.rail-footer span { color: #6e7778; font-size: 9px; letter-spacing: .04em; text-transform: none; }
-.avatar { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; background: #31444a; color: #bfd2d3; font: 9px var(--mono); }
+.rail-footer .operator-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow: hidden; }
+.rail-footer strong { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: var(--paper); }
+.rail-footer span { color: #6e7778; font-size: 9px; letter-spacing: .04em; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.avatar { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; background: #31444a; color: #bfd2d3; font: 9px var(--mono); flex-shrink: 0; }
+.rail-logout-btn { width: 26px; height: 26px; display: inline-grid; place-items: center; flex-shrink: 0; color: #6e7778; border-radius: 4px; border: 1px solid transparent; background: transparent; cursor: pointer; transition: all 150ms ease; }
+.rail-logout-btn:hover { color: var(--paper); border-color: var(--line-dark); background: rgba(255,255,255,.05); }
 .mobile-menu { display: none; }
 .status-dot { display: none; }
 .status-warn, .status-bad, .status-blue { display: none; }
