@@ -17,6 +17,7 @@ import {
   Terminal,
   Shield,
   Zap,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MARK from '@/assets/qds-sentinel-mark_81058a94.png';
@@ -360,6 +361,17 @@ export default function LoginPage() {
           </div>
           <div className="footer-meta-item">
             <span>Terminal Version: <strong>v1.4.2-qds-live</strong></span>
+          </div>
+          <div className="footer-meta-item">
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => window.dispatchEvent(new CustomEvent('qds-open-guidelines'))}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--copper)' }}
+            >
+              <FileText size={12} />
+              <span>Guidelines &amp; Policies</span>
+            </button>
           </div>
         </footer>
       </main>

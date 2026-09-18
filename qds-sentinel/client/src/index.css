@@ -2916,3 +2916,40 @@ a,
   gap: 6px;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Guidelines & Operational Policies Modal (Signal Atelier)
+───────────────────────────────────────────────────────────── */
+.guidelines-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--slate);
+  background: transparent;
+  border-radius: 4px 4px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.guidelines-tab-btn:hover {
+  color: var(--ink);
+  background: rgba(22, 24, 26, 0.03);
+}
+
+.guidelines-tab-btn.active {
+  color: var(--copper);
+  border-bottom-color: var(--copper);
+  background: var(--paper);
+}
+
+@media (max-width: 640px) {
+  .guidelines-modal-card nav {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+

@@ -18,6 +18,7 @@ import {
   Download,
   FileCode,
   FileKey2,
+  FileText,
   Gauge,
   GitBranch,
   Home as HomeIcon,
@@ -216,6 +217,16 @@ function Topbar({ eyebrow, title, subtitle, action, onNotifications }: { eyebrow
       </div>
       <div className="topbar-actions">
         {action}
+        <button
+          type="button"
+          className="button button-quiet button-small"
+          onClick={() => window.dispatchEvent(new CustomEvent("qds-open-guidelines"))}
+          title="Operational Guidelines & Security Policies"
+          style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+        >
+          <FileText size={13} />
+          <span>Policies</span>
+        </button>
         <button
           className={cn("button button-small", user ? "button-quiet" : "button-copper")}
           onClick={() => window.dispatchEvent(new CustomEvent("qds-open-login"))}
@@ -3996,6 +4007,15 @@ export default function Home() {
         {!isSandbox && !isTransfer && (
           <footer className="page-footer">
             <span className="footer-brand"><img src={MARK} alt="" /> QDS SENTINEL / v1.0.0</span>
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => window.dispatchEvent(new CustomEvent('qds-open-guidelines'))}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}
+            >
+              <FileText size={12} />
+              <span>Guidelines &amp; Policies</span>
+            </button>
             <span>fastapi gateway <b>3001 OK</b></span>
             <span>© 2026 quantum assurance lab</span>
           </footer>

@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import ChatPage from "./pages/ChatPage";
 import LoginPage from "./pages/LoginPage";
 import NotificationCenterDrawer from "./components/NotificationCenterDrawer";
+import GuidelinesModal from "./components/GuidelinesModal";
 
 import { SentinelProvider } from "./lib/SentinelContext";
 
@@ -50,6 +51,7 @@ export default function App() {
               <Toaster />
               <WouterRouter base={getBase()}>
                 <NotificationCenterDrawer />
+                <GuidelinesModal />
                 <Switch>
                   <Route path="/login" component={LoginPage} />
                   <Route path="/" component={Home} />
