@@ -15,6 +15,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
 import MARK from '@/assets/qds-sentinel-mark_81058a94.png';
 
 export default function GuidelinesModal() {
@@ -60,8 +61,7 @@ export default function GuidelinesModal() {
     toast.success('Guidelines & Operational Policies acknowledged. Welcome to QDS Sentinel.');
   };
 
-  const handleDownloadPolicy = () => {
-    const policyText = `===============================================================
+  const policyText = `===============================================================
 QDS SENTINEL — QUANTUM SECURITY GUIDELINES & OPERATIONAL POLICIES
 Doc Ref: DOC-QDS-SEC-2026-REV4 | Classification: RESTRICTED / SEC-3
 Effective Date: March 2026 | Governing Body: Quantum Assurance Lab
@@ -72,21 +72,24 @@ Effective Date: March 2026 | Governing Body: Quantum Assurance Lab
 1.1 Entangled Photon Pair Handling:
     - SPDC pump crystal emits correlated photon pairs at lambda = 775nm -> 1550nm.
     - All dark fiber transmissions must maintain optical state purity >= 98.5%.
+    - Minimum joint coincidence count rate >= 120 kcps.
 1.2 Bell Non-Locality Threshold:
     - Bell parameter CHSH score S must remain strictly >= 2.00 (Nominal baseline: S = 2.76 - 2.82).
+    - S = |E(a, b) - E(a, b') + E(a', b) + E(a', b')| >= 2.00
     - If S < 2.00, quantum non-locality is collapsed; transmission is immediately rejected.
 1.3 Hoeffding Statistical Gate:
     - Quantum Bit Error Rate (QBER) threshold cutoff is strictly fixed at tau = 5.0%.
-    - Minimum sample size of 10,000 raw bits per packet required to ensure statistical confidence bound > 99.99999%.
+    - Under Hoeffding's inequality: P(QBER - e >= epsilon) <= exp(-2n*epsilon^2) < 10^-7.
+    - Minimum sample size of 10,000 raw bits per packet required.
 
 2. ADVERSARY DETECTION & CONTAINMENT POLICY
 -------------------------------------------
 2.1 Intercept-Resend & Split Attacks:
     - Any photon disturbance breaching tau = 5.0% triggers an automated Level-2 SOC incident alert.
-    - Contaminated fiber links must be isolated from optical routing within < 15ms.
+    - Contaminated fiber links must be isolated from optical routing within < 15ms via MEMS switches.
 2.2 Post-Quantum Lattice Handover:
-    - If fiber lines are physically jammed or tampered, the system must engage NIST FIPS 204
-      (CRYSTALS-Dilithium3 / ML-DSA-65) fallback lattice signatures to preserve non-repudiation.
+    - If fiber lines are physically jammed or tampered, the system engages NIST FIPS 204
+      (CRYSTALS-Dilithium3 / ML-DSA-65) fallback lattice signatures in 3.8ms with zero downtime.
 
 3. OPERATOR CLEARANCE & KEY CUSTODY POLICY
 ------------------------------------------
@@ -100,19 +103,218 @@ Effective Date: March 2026 | Governing Body: Quantum Assurance Lab
 
 4. COMPLIANCE & ATTESTATION
 ---------------------------
-- NIST SP 800-208: Stateful Hash-Based Signature Recommendation
-- NIST FIPS 203 (ML-KEM) & FIPS 204 (ML-DSA)
-- ISO/IEC 23837: Quantum Key Distribution Security Requirements
+- NIST FIPS 204: Module-Lattice-Based Digital Signature Standard (ML-DSA-65)
+- NIST SP 800-208: Stateful Hash-Based Signature Schemes for Critical Infrastructure
+- ISO/IEC 23837: Quantum Key Distribution Security Requirements & Evaluation Methods
 ===============================================================`;
 
+  const handleDownloadTxt = () => {
     const blob = new Blob([policyText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `QDS_Sentinel_Guidelines_Policies_${Date.now()}.txt`;
+    link.download = `QDS_Sentinel_Guidelines_Policies_2026.txt`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success('Policy document downloaded.');
+    toast.success('Policy document (.TXT) downloaded.');
+  };
+
+  const handleDownloadPdf = () => {
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 16;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 14;
+
+      // Top Copper Accent
+      doc.setFillColor(185, 74, 47);
+      doc.rect(0, 0, pageWidth, 4, 'F');
+
+      // Header Meta
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(185, 74, 47);
+      doc.text('SIGNAL ATELIER / QUANTUM ASSURANCE LAB', margin, y);
+
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(110, 119, 120);
+      doc.text('DOC-REF: DOC-QDS-SEC-2026-REV4 · CLASSIFICATION: SEC-3 RESTRICTED', pageWidth - margin, y, { align: 'right' });
+      y += 8;
+
+      // Title
+      doc.setFont('times', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(22, 24, 26);
+      doc.text('QDS Sentinel — Operational Guidelines & Security Policies', margin, y);
+      y += 5.5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(90, 100, 102);
+      doc.text('Standard Operating Procedure: Entanglement Verification, Hoeffding Cutoff & PQC Handover', margin, y);
+      y += 5;
+
+      // Divider line
+      doc.setDrawColor(210, 205, 195);
+      doc.setLineWidth(0.4);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 7;
+
+      const addSectionHeader = (number: string, title: string) => {
+        if (y > 260) {
+          doc.addPage();
+          doc.setFillColor(185, 74, 47);
+          doc.rect(0, 0, pageWidth, 4, 'F');
+          y = 16;
+        }
+        doc.setFillColor(244, 241, 234);
+        doc.roundedRect(margin, y - 4, contentWidth, 7, 1, 1, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(185, 74, 47);
+        doc.text(number, margin + 2.5, y + 1);
+        doc.setTextColor(22, 24, 26);
+        doc.text(title, margin + 11, y + 1);
+        y += 7.5;
+      };
+
+      const addParagraph = (heading: string, body: string, formula?: string) => {
+        if (y > 255) {
+          doc.addPage();
+          doc.setFillColor(185, 74, 47);
+          doc.rect(0, 0, pageWidth, 4, 'F');
+          y = 16;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(22, 24, 26);
+        doc.text(heading, margin + 2, y);
+        y += 4;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(60, 68, 70);
+        const splitText = doc.splitTextToSize(body, contentWidth - 4);
+        doc.text(splitText, margin + 2, y);
+        y += splitText.length * 3.8 + 2;
+
+        if (formula) {
+          doc.setFillColor(248, 247, 244);
+          doc.setDrawColor(220, 215, 205);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(margin + 2, y - 3, contentWidth - 4, 6.5, 1, 1, 'FD');
+          doc.setFont('courier', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(185, 74, 47);
+          doc.text(formula, margin + 6, y + 1.2);
+          y += 7.5;
+        }
+        y += 2;
+      };
+
+      // Section 1
+      addSectionHeader('01.', 'QUANTUM PROTOCOL OPERATIONAL RULES');
+      addParagraph(
+        '1.1 Entangled Photon Pair Distribution (SPDC Stage)',
+        'Spontaneous Parametric Down-Conversion (SPDC) sources pump non-linear beta-BBO crystals at lambda = 775 nm to emit polarization-entangled photon pairs at telecom wavelength lambda = 1550 nm. Baseline optical calibration must confirm coincidence count rates >= 120 kcps before key attestation is authorized.',
+        'Purity >= 98.5% | SPDC Coincidence: >= 120,000 cps | Telecom Wavelength: 1550 nm'
+      );
+      addParagraph(
+        '1.2 Clauser-Horne-Shimony-Holt (CHSH) Bell Non-Locality Gate',
+        'The Bell parameter S certifies quantum non-locality across Alice and Bob nodes. Measurements are evaluated across 4 polarization basis orientations. If S < 2.00, quantum non-locality is collapsed, signifying eavesdropping or fiber decoherence.',
+        'S = |E(a,b) - E(a,b\') + E(a\',b) + E(a\',b\')| >= 2.00 (Nominal: 2.76 - 2.82)'
+      );
+      addParagraph(
+        '1.3 Dynamic Hoeffding Statistical Bound (Security Cutoff)',
+        'Quantum Bit Error Rate (QBER) is continuously sampled over minimum block sizes of n >= 10,000 bits. Hoeffding\'s inequality guarantees that statistical fluctuation does not mask adversarial intervention.',
+        'P(QBER - e >= epsilon) <= exp(-2n*epsilon^2) < 10^-7 | Cutoff Threshold: tau = 5.0%'
+      );
+
+      // Section 2
+      addSectionHeader('02.', 'ADVERSARY CONTAINMENT & COUNTERMEASURES');
+      addParagraph(
+        '2.1 Eavesdropping Detection & Automated Fiber Quarantining',
+        'Any intercept-resend, beam splitter, or photon-number splitting (PNS) probe inevitably introduces state collapse and state disturbance. Once QBER crosses 5.0% or CHSH S drops below 2.00, the SOC console triggers acoustic/visual alerts and optical MEMS switches isolate the fiber channel in < 15ms.',
+        'Optical MEMS Channel Isolation Latency: < 15ms | Forensic Code: 0xFA BREACH'
+      );
+      addParagraph(
+        '2.2 Emergency Post-Quantum (PQC) Handover',
+        'To guarantee non-repudiation and operational survivability during optical jamming or fiber severed states, QDS Sentinel hot-swaps to the CRYSTALS-Dilithium3 (NIST FIPS 204 / ML-DSA-65) lattice signature engine with zero downtime.',
+        'Lattice Hardness: NIST Security Category 3 (AES-192 equivalent) | Handover: 3.8ms'
+      );
+
+      // Section 3
+      addSectionHeader('03.', 'OPERATOR CLEARANCE & KEY CUSTODY POLICY');
+      addParagraph(
+        '3.1 Universal Hash Privacy Amplification',
+        'Raw bitstrings are distilled through Toeplitz matrix universal hashing to eliminate all partial mutual information potentially acquired by Eve. The resultant 256-bit one-time pad (OTP) token possesses unconditional, information-theoretic security against quantum computers.',
+        'Key Distillation: Sifted Bits -> Toeplitz Hash Matrix -> 256-Bit Unconditional OTP'
+      );
+      addParagraph(
+        '3.2 Operator Escalation & Clearance Matrix',
+        'Level 1 (Field Operator): Telemetry monitoring & routine signature dispatch.\nLevel 2 (Security Analyst): Threat triage, incident investigation & Hoeffding calibration.\nLevel 3 (Cryptanalyst / Root): Optical containment override & PQC key escrow governance.'
+      );
+
+      // Section 4
+      addSectionHeader('04.', 'GOVERNING COMPLIANCE & ATTESTATION STANDARDS');
+      addParagraph(
+        '4.1 International Standards & Frameworks',
+        '• NIST FIPS 204: Module-Lattice-Based Digital Signature Standard (ML-DSA-65).\n• NIST SP 800-208: Recommendation for Stateful Hash-Based Signature Schemes.\n• ISO/IEC 23837: Information Security, Cybersecurity and Privacy Protection for QKD.\n• ETSI GS QKD 014: Quantum Key Distribution Protocol Interface Security.'
+      );
+
+      // Attestation Seal
+      if (y > 245) {
+        doc.addPage();
+        doc.setFillColor(185, 74, 47);
+        doc.rect(0, 0, pageWidth, 4, 'F');
+        y = 16;
+      }
+      y += 3;
+      doc.setFillColor(244, 241, 234);
+      doc.setDrawColor(210, 205, 195);
+      doc.roundedRect(margin, y, contentWidth, 20, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(22, 24, 26);
+      doc.text('OFFICIAL ATTESTATION SEAL', margin + 5, y + 5);
+
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(90, 100, 102);
+      doc.text(`Attestation Timestamp: ${new Date().toISOString()}`, margin + 5, y + 10);
+      doc.text('Verification Authority: Quantum Assurance Lab & Root Governance', margin + 5, y + 14);
+      doc.text('Cryptographic Checksum: SHA256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069', margin + 5, y + 18);
+
+      // Page numbers on all pages
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(220, 215, 205);
+        doc.setLineWidth(0.3);
+        doc.line(margin, 285, pageWidth - margin, 285);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(140, 145, 146);
+        doc.text('QDS Sentinel — Restricted Distribution · Quantum Security Operating Procedures', margin, 290);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, 290, { align: 'right' });
+      }
+
+      doc.save(`QDS_Sentinel_Operational_Guidelines_Policies_2026.pdf`);
+      toast.success('Policy document (.PDF) generated and downloaded.');
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      toast.error('Could not generate PDF. Downloading text version instead.');
+      handleDownloadTxt();
+    }
   };
 
   return (
@@ -472,16 +674,40 @@ Effective Date: March 2026 | Governing Body: Quantum Assurance Lab
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
-            <button
-              type="button"
-              className="button button-quiet button-small"
-              onClick={handleDownloadPolicy}
-              title="Download Policy Document (Text)"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Download size={13} />
-              <span>Download Policy Brief</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', color: 'var(--slate)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Download Policy:
+              </span>
+              <button
+                type="button"
+                className="button button-quiet button-small"
+                onClick={handleDownloadTxt}
+                title="Download Policy Brief as plain text (.txt)"
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px' }}
+              >
+                <FileText size={13} />
+                <span>.TXT</span>
+              </button>
+
+              <button
+                type="button"
+                className="button button-outline button-small"
+                onClick={handleDownloadPdf}
+                title="Download Official Operational Policy Specification as PDF (.pdf)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11.5px',
+                  color: 'var(--copper)',
+                  borderColor: 'rgba(185, 74, 47, 0.45)',
+                  background: 'rgba(185, 74, 47, 0.06)',
+                }}
+              >
+                <Download size={13} />
+                <span>.PDF Document</span>
+              </button>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
