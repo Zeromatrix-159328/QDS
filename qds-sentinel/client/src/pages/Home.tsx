@@ -48,8 +48,10 @@ import {
   Waves,
   X,
   Zap,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { DemonstrationDesk } from "./DemonstrationDesk";
 import { apiClient } from "@/lib/apiClient";
 import { generateAiRemediation, AiRemediationResponse } from "@/lib/groqAiService";
@@ -111,8 +113,17 @@ function SectionLabel({ index, eyebrow, title, action }: { index: string; eyebro
 }
 
 function Sidebar({ location, isCollapsed, onToggle }: { location: string; isCollapsed: boolean; onToggle: () => void }) {
+  const { user, logout } = useAuth();
+  const [, setLocation] = useLocation();
   const [monitorTab, setMonitorTab] = useState(() => { const requested = new URLSearchParams(window.location.search).get("section"); return ["overview", "threats", "incidents", "network", "pqc"].includes(requested ?? "") ? requested! : "overview"; });
   useEffect(() => { const onTab = (event: Event) => setMonitorTab((event as CustomEvent<string>).detail); const onPopState = () => { const requested = new URLSearchParams(window.location.search).get("section"); setMonitorTab(["overview", "threats", "incidents", "network", "pqc"].includes(requested ?? "") ? requested! : "overview"); }; window.addEventListener("qds-monitor-tab", onTab); window.addEventListener("popstate", onPopState); return () => { window.removeEventListener("qds-monitor-tab", onTab); window.removeEventListener("popstate", onPopState); }; }, []);
+
+  const handleSignOut = () => {
+    logout();
+    toast.info("Operator terminal signed out.");
+    setLocation("/login");
+  };
+
   return (
     <aside className={cn("operator-rail", isCollapsed && "operator-rail-collapsed")}>
       <div className="rail-top">
@@ -155,10 +166,29 @@ function Sidebar({ location, isCollapsed, onToggle }: { location: string; isColl
         <div className="rail-status-value">3001 <span>OK</span></div>
         <div className="rail-status-meta">12ms round trip <span>↗</span></div>
       </div>
-      <div className="rail-footer">
-        <div className="avatar">AS</div>
-        <div className="operator-info"><strong>Anisha S</strong><span>Security operator</span></div>
-        <Settings2 size={15} className="settings-icon" />
+      <div className="rail-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          <div className="avatar" style={{ backgroundColor: user?.avatar_bg ? undefined : undefined }}>
+            {user?.avatar_text || "AS"}
+          </div>
+          <div className="operator-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.display_name || "Anisha S"}
+            </strong>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.role || "Security operator"}
+            </span>
+          </div>
+        </div>
+        <button
+          className="icon-button"
+          onClick={handleSignOut}
+          title="Sign out of Quantum Terminal"
+          aria-label="Sign out"
+          style={{ padding: '6px', color: 'var(--slate)' }}
+        >
+          <LogOut size={15} />
+        </button>
       </div>
     </aside>
   );

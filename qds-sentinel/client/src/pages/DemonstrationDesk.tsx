@@ -1,9 +1,10 @@
 /* Signal Atelier Demonstration Desk: a rail-free, copper-and-blue quantum instrument panel with compact operational hierarchy. */
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, ArrowLeft, Bell, Check, ChevronRight, Download, FileKey2, Pause, Play, Plus, RotateCcw, Settings2, ShieldCheck, Sparkles, X, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, Check, ChevronRight, Download, FileKey2, Pause, Play, Plus, RotateCcw, Settings2, ShieldCheck, Sparkles, X, Zap, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useSentinel } from "@/lib/SentinelContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type NodeId = "alice" | "arb" | "bob" | "eve";
 type Point = { x: number; y: number };
@@ -43,6 +44,7 @@ function DeskModal({ title, eyebrow, children, onClose }: { title: string; eyebr
 
 export function DemonstrationDesk() {
   const { toggleNotificationCenter, unreadNotificationCount } = useSentinel();
+  const { user, logout } = useAuth();
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [eve, setEve] = useState(false);
@@ -148,6 +150,21 @@ export function DemonstrationDesk() {
           )}
         </button>
         <Link href="/home" className="demo-desk-home"><ArrowLeft size={13} /> Home</Link>
+        {user && (
+          <button
+            className="icon-button"
+            onClick={() => {
+              logout();
+              toast.info("Signed out of Demonstration Desk.");
+              window.location.href = "#/login";
+            }}
+            title={`Signed in as ${user.display_name} (${user.role}). Click to Sign Out.`}
+            aria-label="Sign out"
+            style={{ color: 'var(--slate)', marginLeft: '4px' }}
+          >
+            <LogOut size={14} />
+          </button>
+        )}
       </div>
     </header>
 
