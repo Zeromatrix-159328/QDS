@@ -38,6 +38,8 @@ jobs:
 
       - name: Build Static Site
         working-directory: ./qds-sentinel
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: |
           pnpm exec vite build
           cp dist/public/index.html dist/public/404.html
