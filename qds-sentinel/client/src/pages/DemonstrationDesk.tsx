@@ -49,7 +49,6 @@ export function DemonstrationDesk() {
   const [playing, setPlaying] = useState(false);
   const [eve, setEve] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showNewSession, setShowNewSession] = useState(false);
   const [executingLive, setExecutingLive] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -221,7 +220,6 @@ export function DemonstrationDesk() {
 
     {showNewSession && <DeskModal eyebrow="Provision / 01" title="New quantum session" onClose={() => setShowNewSession(false)}><p className="modal-copy">Provision a clean authenticated channel at the EPR preparation phase.</p><div className="demo-desk-form"><label>Document<input defaultValue="board-resolution.pdf" /></label><label>Protocol profile<select defaultValue="QDS / 1550nm"><option>QDS / 1550nm</option><option>QDS / test channel</option></select></label></div><button className="button button-copper modal-submit" onClick={() => { setShowNewSession(false); setStep(0); setPlaying(true); toast.success("Quantum session created and active"); }}><Play size={14} fill="currentColor" /> Create & start session</button></DeskModal>}
     {showSettings && <DeskModal eyebrow="Control plane" title="Simulation settings" onClose={() => setShowSettings(false)}><div className="demo-desk-settings"><span>Playback speed</span><div>{[0.5, 1, 2, 4].map((s) => <button className={s === speed ? "demo-desk-speed-active" : ""} key={s} onClick={() => setSpeed(s)}>{s}×</button>)}</div></div><p className="modal-copy">Photon flow and phase progression remain synchronized at every speed.</p></DeskModal>}
-    {showNotifications && <aside className="notification-popover demo-desk-notification"><header><span className="eyebrow">Signal desk</span><button className="icon-button" onClick={() => setShowNotifications(false)} aria-label="Close notifications"><X size={14} /></button></header><strong>{eve ? "Quantum channel disturbance" : "No active alerts"}</strong><p>{eve ? "The intercept path has exceeded the Hoeffding threshold." : "The active optical path remains within nominal tolerance."}</p></aside>}
   </main>;
 }
 
