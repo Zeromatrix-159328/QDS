@@ -62,6 +62,22 @@ export default function App() {
                   <Route path="/transfer" component={() => <ProtectedRoute component={Home} />} />
                   <Route path="/database" component={() => <ProtectedRoute component={Home} />} />
                   <Route path="/chat" component={() => <ProtectedRoute component={ChatPage} />} />
+                  <Route path="/docs">
+                    {() => {
+                      if (typeof window !== 'undefined') {
+                        window.location.replace("https://qds-p5ng.onrender.com/docs");
+                      }
+                      return null;
+                    }}
+                  </Route>
+                  <Route path="/redoc">
+                    {() => {
+                      if (typeof window !== 'undefined') {
+                        window.location.replace("https://qds-p5ng.onrender.com/redoc");
+                      }
+                      return null;
+                    }}
+                  </Route>
                   <Route path="/404" component={NotFound} />
                   <Route component={NotFound} />
                 </Switch>
