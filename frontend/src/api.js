@@ -1,6 +1,12 @@
 // QDS Quantum Chat API Client
 
-const API_BASE = '/api/v1';
+const RENDER_PROD_URL = 'https://qds-p5ng.onrender.com';
+const isProduction = typeof window !== 'undefined' && (
+  window.location.hostname.includes('github.io') ||
+  window.location.hostname.includes('onrender.com') ||
+  window.location.hostname.includes('vercel.app')
+);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (isProduction ? `${RENDER_PROD_URL}/api/v1` : '/api/v1');
 
 // Initial network topology setup for QuARC
 export const initNetwork = async () => {

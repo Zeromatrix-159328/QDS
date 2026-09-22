@@ -1,7 +1,25 @@
-// FastAPI Backend API Client for QDS Sentinel (Connected to FastAPI backend on port 8000)
+// FastAPI Backend API Client for QDS Sentinel
+const RENDER_PROD_URL = 'https://qds-p5ng.onrender.com';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
-const HEALTH_URL = 'http://127.0.0.1:8000/health';
+const isProductionDomain = typeof window !== 'undefined' && (
+  window.location.hostname.includes('github.io') ||
+  window.location.hostname.includes('onrender.com') ||
+  window.location.hostname.includes('vercel.app')
+);
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (
+  isProductionDomain
+    ? `${RENDER_PROD_URL}/api/v1`
+    : 'http://127.0.0.1:8000/api/v1'
+);
+
+const HEALTH_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/health`
+  : (
+    isProductionDomain
+      ? `${RENDER_PROD_URL}/health`
+      : 'http://127.0.0.1:8000/health'
+  );
 
 class ApiClient {
   private async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
