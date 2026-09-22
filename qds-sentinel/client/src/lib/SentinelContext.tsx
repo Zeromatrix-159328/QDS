@@ -87,9 +87,19 @@ export function parseTimeToSeconds(timeStr: string): number {
 }
 
 export function sortTelemetryDesc(items: TelemetryItem[]): TelemetryItem[] {
-  return [...items].sort((a, b) => {
-    const cA = Number(a.createdAt) || (a.time ? Date.parse(a.time) || 0 : 0);
-    const cB = Number(b.createdAt) || (b.time ? Date.parse(b.time) || 0 : 0);
+  const seen = new Set<string>();
+  const uniqueItems: TelemetryItem[] = [];
+  for (const it of items) {
+    if (!it) continue;
+    const key = it.id || `${it.time}-${it.source}-${it.text}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueItems.push(it);
+    }
+  }
+  return uniqueItems.sort((a, b) => {
+    const cA = Number(a.createdAt) || 0;
+    const cB = Number(b.createdAt) || 0;
     if (cA && cB && cA !== cB) return cB - cA;
     const tA = parseTimeToSeconds(a.time);
     const tB = parseTimeToSeconds(b.time);
@@ -1071,7 +1081,7 @@ AUTOMATED REMEDIATION PLAN EXECUTED
     if (nextEve) {
       setActiveAttack('MitM attack');
       const newEvt: TelemetryItem = {
-        id: `evt-${Date.now()}`,
+        id: `evt-mitm-${Date.now()}`,
         time: nowStr,
         source: 'EVE-PROBE',
         text: 'Intercept-resend attack tap detected on optical link (QBER 14.2%)',
@@ -1082,7 +1092,7 @@ AUTOMATED REMEDIATION PLAN EXECUTED
         isThreat: true,
         createdAt: Date.now()
       };
-      setTelemetryLogs((prev) => [newEvt, ...prev]);
+      setTelemetryLogs((prev) => sortTelemetryDesc([newEvt, ...prev]).slice(0, 100));
 
       const newInc: IncidentItem = {
         id: `INC-2026-${Math.floor(1000 + Math.random() * 8999)}`,
@@ -1125,7 +1135,7 @@ AUTOMATED REMEDIATION PLAN EXECUTED
     } else {
       setActiveAttack('Clean signature');
       const newEvt: TelemetryItem = {
-        id: `evt-${Date.now()}`,
+        id: `evt-restored-${Date.now()}`,
         time: nowStr,
         source: 'ARB-CORE',
         text: 'Channel restored · Eve bypassed · QBER returned to nominal 1.9%',
@@ -1133,9 +1143,10 @@ AUTOMATED REMEDIATION PLAN EXECUTED
         code: '200 OK',
         qber: '1.9%',
         chsh: '2.76',
-        isThreat: false
+        isThreat: false,
+        createdAt: Date.now()
       };
-      setTelemetryLogs((prev) => [newEvt, ...prev]);
+      setTelemetryLogs((prev) => sortTelemetryDesc([newEvt, ...prev]).slice(0, 100));
 
       setSessions((prev) => prev.map((s, i) => i === 0 ? { ...s, state: 'STABLE', tone: 'good', rate: '245.8', trace: 'wave' } : s));
 

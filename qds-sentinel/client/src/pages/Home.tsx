@@ -333,12 +333,12 @@ function TelemetryChart({ threat = false, range = "15M" }: { threat?: boolean; r
     
     if (recent.length < count) {
       const missing = count - recent.length;
-      const oldestTime = recent[0]?.createdAt || Date.now();
+      const oldestTime = recent[0]?.createdAt || (Date.now() - count * 3500);
       const pad: any[] = [];
       for (let i = missing; i > 0; i--) {
         const padTime = oldestTime - i * 3500;
         pad.push({
-          id: `pad-init-${padTime}-${i}`,
+          id: `pad-qber-${range}-${missing - i}`,
           createdAt: padTime,
           time: formatIstTime(padTime, true),
           source: 'ARB-CORE',
@@ -353,7 +353,7 @@ function TelemetryChart({ threat = false, range = "15M" }: { threat?: boolean; r
       return [...pad, ...recent];
     }
     return recent;
-  }, [telemetryLogs, count]);
+  }, [telemetryLogs, count, range]);
 
   // Map each individual real incoming log to ONE discrete dot on the chart
   const points = useMemo(() => {
@@ -361,14 +361,18 @@ function TelemetryChart({ threat = false, range = "15M" }: { threat?: boolean; r
       const x = (index / (chronologicalLogs.length - 1 || 1)) * width;
       
       let val = 0.019;
-      if (item.qber) {
-        const parsed = parseFloat(String(item.qber).replace('%', ''));
-        if (!isNaN(parsed)) val = parsed / 100;
+      if (item.qber != null) {
+        const str = String(item.qber).trim();
+        const hasPercent = str.includes('%');
+        const parsed = parseFloat(str.replace('%', ''));
+        if (!isNaN(parsed)) {
+          val = (hasPercent || parsed > 1.0) ? parsed / 100 : parsed;
+        }
       }
 
       const clamped = Math.max(0, Math.min(maxQber, val));
       const y = (height - padBottom) - (clamped / maxQber) * (height - padTop - padBottom);
-      const isBreachedPt = val > effectiveThreshold || Boolean(item.isThreat);
+      const isBreachedPt = val > effectiveThreshold || Boolean(item.isThreat) || Boolean(item.code && (item.code.includes('403') || item.code.includes('0xFA') || item.code.includes('REJECT')));
       const timeDisplay = item.time ? (item.time.includes('.') ? item.time.split('.')[0] : item.time) : formatIstTime(item.createdAt, false);
 
       return {
@@ -438,10 +442,10 @@ function TelemetryChart({ threat = false, range = "15M" }: { threat?: boolean; r
           </g>
         )}
 
-        <path className="chart-area" d={areaD} fill="url(#area-grad-dyn)" style={{ transition: 'd 0.3s ease' }} />
-        <path className={cn("signal-line", isAttackBreached && "signal-line-threat")} d={pathD} style={{ stroke: isAttackBreached ? "#B94A2F" : "#2F6F85", strokeWidth: "2.5", transition: 'd 0.3s ease' }} />
+        <path className="chart-area" d={areaD} fill="url(#area-grad-dyn)" />
+        <path className={cn("signal-line", isAttackBreached && "signal-line-threat")} d={pathD} style={{ stroke: isAttackBreached ? "#B94A2F" : "#2F6F85", strokeWidth: "2.5" }} />
         {points.map((pt, i) => (
-          <g key={pt.id || i}>
+          <g key={`pt-qber-${i}`}>
             <circle cx={pt.x} cy={pt.y} r={i === points.length - 1 ? "5.5" : "3.5"} fill={pt.isThreat ? "#B94A2F" : "#2F6F85"} stroke="#ffffff" strokeWidth="1.5" />
             {i === points.length - 1 && (
               <circle cx={pt.x} cy={pt.y} r="10" fill="none" stroke={pt.isThreat ? "#B94A2F" : "#2F6F85"} strokeWidth="1.8" opacity="0.7">
@@ -479,12 +483,12 @@ function BellChart({ threat = false, range = "15M" }: { threat?: boolean; range?
     
     if (recent.length < count) {
       const missing = count - recent.length;
-      const oldestTime = recent[0]?.createdAt || Date.now();
+      const oldestTime = recent[0]?.createdAt || (Date.now() - count * 3500);
       const pad: any[] = [];
       for (let i = missing; i > 0; i--) {
         const padTime = oldestTime - i * 3500;
         pad.push({
-          id: `pad-init-${padTime}-${i}`,
+          id: `pad-bell-${range}-${missing - i}`,
           createdAt: padTime,
           time: formatIstTime(padTime, true),
           source: 'ARB-CORE',
@@ -499,7 +503,7 @@ function BellChart({ threat = false, range = "15M" }: { threat?: boolean; range?
       return [...pad, ...recent];
     }
     return recent;
-  }, [telemetryLogs, count]);
+  }, [telemetryLogs, count, range]);
 
   // Map each individual real incoming log to ONE discrete dot on the chart
   const points = useMemo(() => {
@@ -507,15 +511,15 @@ function BellChart({ threat = false, range = "15M" }: { threat?: boolean; range?
       const x = (index / (chronologicalLogs.length - 1 || 1)) * width;
       
       let val = 2.76;
-      if (item.chsh) {
-        const parsed = parseFloat(String(item.chsh));
+      if (item.chsh != null) {
+        const parsed = parseFloat(String(item.chsh).replace(/[^0-9\.]/g, ''));
         if (!isNaN(parsed)) val = parsed;
       }
 
       const clamped = Math.max(minChsh, Math.min(maxChsh, val));
       const y = (height - padBottom) - ((clamped - minChsh) / (maxChsh - minChsh)) * (height - padTop - padBottom);
       const isViolation = val >= 2.0;
-      const isThreatPoint = val < 2.0 || Boolean(item.isThreat);
+      const isThreatPoint = val < 2.0 || Boolean(item.isThreat) || Boolean(item.code && (item.code.includes('403') || item.code.includes('0xFA') || item.code.includes('REJECT')));
       const timeDisplay = item.time ? (item.time.includes('.') ? item.time.split('.')[0] : item.time) : formatIstTime(item.createdAt, false);
 
       return {
@@ -586,13 +590,13 @@ function BellChart({ threat = false, range = "15M" }: { threat?: boolean; range?
           </g>
         )}
 
-        <path className="chart-area" d={areaD} fill="url(#bell-area-grad-dyn)" style={{ transition: 'd 0.3s ease' }} />
-        <path className={cn("signal-line", isCollapsed && "signal-line-threat")} d={pathD} style={{ stroke: isCollapsed ? "#B94A2F" : "#2F6F85", strokeWidth: "2.5", transition: 'd 0.3s ease' }} />
+        <path className="chart-area" d={areaD} fill="url(#bell-area-grad-dyn)" />
+        <path className={cn("signal-line", isCollapsed && "signal-line-threat")} d={pathD} style={{ stroke: isCollapsed ? "#B94A2F" : "#2F6F85", strokeWidth: "2.5" }} />
         {points.map((pt, i) => (
-          <g key={pt.id || i}>
-            <circle cx={pt.x} cy={pt.y} r={i === points.length - 1 ? "5.5" : "3.5"} fill={!pt.isViolation ? "#B94A2F" : "#2F6F85"} stroke="#ffffff" strokeWidth="1.5" />
+          <g key={`pt-bell-${i}`}>
+            <circle cx={pt.x} cy={pt.y} r={i === points.length - 1 ? "5.5" : "3.5"} fill={pt.isThreat || !pt.isViolation ? "#B94A2F" : "#2F6F85"} stroke="#ffffff" strokeWidth="1.5" />
             {i === points.length - 1 && (
-              <circle cx={pt.x} cy={pt.y} r="10" fill="none" stroke={!pt.isViolation ? "#B94A2F" : "#2F6F85"} strokeWidth="1.8" opacity="0.7">
+              <circle cx={pt.x} cy={pt.y} r="10" fill="none" stroke={pt.isThreat || !pt.isViolation ? "#B94A2F" : "#2F6F85"} strokeWidth="1.8" opacity="0.7">
                 <animate attributeName="r" values="5;14;5" dur="1.8s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.9;0;0.9" dur="1.8s" repeatCount="indefinite" />
               </circle>
@@ -2060,11 +2064,13 @@ function NetworkPanel({ selectedNode, setSelectedNode, isolatedNodes, setIsolate
 
     window.setTimeout(() => {
       const rtt = nodeId === "ARBITRATOR" ? "0.85ms" : nodeId === "BOB" && eveActive ? "85.20ms" : "1.15ms";
-      const nowStr = new Date().toTimeString().slice(0, 8);
+      const nowMs = Date.now();
+      const nowStr = formatIstTime(nowMs, true);
       
       pushTelemetryLogs([
         {
-          id: `evt-${Date.now()}-ping`,
+          id: `evt-${nowMs}-ping`,
+          createdAt: nowMs,
           time: nowStr,
           source: nodeName,
           text: `Active ICMP/QKD probe on ${nodeName} verified: RTT ${rtt}, 0% drop.`,
@@ -2088,11 +2094,13 @@ function NetworkPanel({ selectedNode, setSelectedNode, isolatedNodes, setIsolate
 
     window.setTimeout(() => {
       setNodeHealthMap(prev => ({ ...prev, [nodeId]: "NOMINAL" }));
-      const nowStr = new Date().toTimeString().slice(0, 8);
+      const nowMs = Date.now();
+      const nowStr = formatIstTime(nowMs, true);
 
       pushTelemetryLogs([
         {
-          id: `evt-${Date.now()}-reboot`,
+          id: `evt-${nowMs}-reboot`,
+          createdAt: nowMs,
           time: nowStr,
           source: nodeName,
           text: `Node ${nodeName} coprocessor reboot completed. Phase lock verified (Fidelity 99.9%).`,
