@@ -85,9 +85,10 @@ class SessionService:
         num_pairs: int = 1000,
         baseline_noise: float = 0.02,
         alpha: float = 1e-6,
+        session_id: Optional[str] = None,
     ) -> QuantumSession:
-        """Create a new quantum session and persist it to PostgreSQL."""
-        session_id = self._generate_session_id()
+        """Create a new quantum session and persist it to database."""
+        session_id = session_id or self._generate_session_id()
         nonce = self._generate_nonce()
         now = datetime.now(timezone.utc)
 
@@ -113,20 +114,54 @@ class SessionService:
         self._save_to_db_sync(session)
 
         logger.info(
-            "Session created & persisted to PostgreSQL: %s (pairs=%d, noise=%.3f, α=%.1e)",
+            "Session created & persisted to DB: %s (pairs=%d, noise=%.3f, α=%.1e)",
             session_id, num_pairs, baseline_noise, alpha
         )
         return session
 
     def get(self, session_id: str) -> QuantumSession:
         """
-        Retrieve a session by ID.
-
-        Raises:
-            SessionNotFoundError: If the session does not exist.
+        Retrieve a session by ID. If session does not exist (e.g. demo session),
+        auto-provision it on-demand so attacks and audits succeed immediately.
         """
         if session_id not in self._sessions:
-            raise SessionNotFoundError(session_id)
+            try:
+                from app.core.database import get_sync_engine
+                db_engine = get_sync_engine()
+                with SyncSession(db_engine) as db:
+                    db_item = db.get(SessionModel, session_id)
+                    if db_item:
+                        sess = QuantumSession(
+                            session_id=db_item.session_id,
+                            status=db_item.status,
+                            created_at=db_item.created_at,
+                            updated_at=db_item.updated_at,
+                            nonce=db_item.nonce,
+                            parameters=SessionParameters(**(db_item.parameters or {})),
+                            alice=AliceData(**(db_item.alice or {})),
+                            bob=BobData(**(db_item.bob or {})),
+                            sifting=SiftingData(**(db_item.sifting or {})),
+                            attacks=[AttackRecord(**a) for a in (db_item.attacks or [])],
+                            security=SecurityResult(**(db_item.security or {})),
+                        )
+                        self._sessions[session_id] = sess
+                        return sess
+            except Exception as e:
+                logger.debug("DB lookup note: %s", e)
+
+            # Auto-provision on-demand so red-team attack sandbox and demo desk work immediately
+            sess = self.create(session_id=session_id)
+            try:
+                from app.services.quantum_service import quantum_service
+                quantum_service.generate_epr(sess.session_id, 1000)
+                quantum_service.sign(sess.session_id, "board-resolution.pdf")
+                quantum_service.measure(sess.session_id)
+                quantum_service.sift(sess.session_id)
+            except Exception as q_err:
+                logger.debug("Auto-provision quantum steps note: %s", q_err)
+
+            return self._sessions[session_id]
+
         return self._sessions[session_id]
 
     def update(self, session_id: str, **fields) -> QuantumSession:
