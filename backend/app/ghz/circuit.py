@@ -16,22 +16,90 @@ Basis Transformation Mathematics:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+
+try:
+    from qiskit import QuantumCircuit
+    from qiskit_aer import AerSimulator
+    HAS_QISKIT = True
+except (ImportError, ModuleNotFoundError):
+    HAS_QISKIT = False
+    QuantumCircuit = None  # type: ignore
+    AerSimulator = None    # type: ignore
 
 from app.ghz.exceptions import GHZGenerationError, InvalidBasisError
 
+
+class FallbackCircuitInstruction:
+    def __init__(self, name: str):
+        self.operation = type("Op", (), {"name": name})()
+
+
+class FallbackQuantumCircuit:
+    """Lightweight fallback representing a 3-qubit GHZ circuit when Qiskit is unavailable."""
+    def __init__(self, num_qubits: int = 3, num_clbits: int = 3, basis: Optional[List[str]] = None):
+        self.num_qubits = num_qubits
+        self.num_clbits = num_clbits
+        self.basis = basis or ["Z", "Z", "Z"]
+        self.data = [
+            FallbackCircuitInstruction("h"),
+            FallbackCircuitInstruction("cx"),
+            FallbackCircuitInstruction("cx"),
+            FallbackCircuitInstruction("measure"),
+        ]
+
+
 logger = logging.getLogger("qds.ghz.circuit")
+
+
+def _simulate_ghz_numpy(
+    basis: List[str],
+    shots: int = 1000,
+    noise_rate: float = 0.0,
+    seed: Optional[int] = None,
+) -> Tuple[Dict[str, int], List[str]]:
+    """Exact 3-qubit GHZ statevector simulation using NumPy."""
+    rng = np.random.default_rng(seed)
+    state = np.zeros((2, 2, 2), dtype=complex)
+    state[0, 0, 0] = 1.0 / np.sqrt(2)
+    state[1, 1, 1] = 1.0 / np.sqrt(2)
+
+    H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+    for i, b in enumerate(basis):
+        if b.upper() == "X":
+            state = np.tensordot(H, state, axes=([1], [i]))
+            state = np.moveaxis(state, 0, i)
+
+    probs = np.abs(state.flatten()) ** 2
+    probs /= np.sum(probs)
+
+    indices = rng.choice(8, size=shots, p=probs)
+    samples = [f"{idx:03b}" for idx in indices]
+
+    if noise_rate > 0.0:
+        noisy_samples = []
+        for s in samples:
+            bits = list(s)
+            for j in range(3):
+                if rng.random() < noise_rate:
+                    bits[j] = "1" if bits[j] == "0" else "0"
+            noisy_samples.append("".join(bits))
+        samples = noisy_samples
+
+    formatted_counts: Dict[str, int] = {}
+    for s in samples:
+        formatted_counts[s] = formatted_counts.get(s, 0) + 1
+
+    return formatted_counts, samples
 
 
 def create_ghz_circuit(
     basis: Optional[List[str]] = None,
     noise_rate: float = 0.0,
     seed: Optional[int] = None,
-) -> QuantumCircuit:
+) -> Any:
     """
     Construct a 3-qubit GHZ quantum circuit with specified measurement bases.
 
@@ -65,6 +133,9 @@ def create_ghz_circuit(
         if b not in ("Z", "X"):
             raise InvalidBasisError(b)
 
+    if not HAS_QISKIT:
+        return FallbackQuantumCircuit(3, 3, basis=normalized_basis)
+
     # 3 quantum qubits, 3 classical bits
     qc = QuantumCircuit(3, 3)
 
@@ -90,55 +161,64 @@ def create_ghz_circuit(
 
 
 def simulate_ghz(
-    qc: QuantumCircuit,
+    qc: Any,
     shots: int = 1000,
     noise_rate: float = 0.0,
     seed: Optional[int] = None,
 ) -> Tuple[Dict[str, int], List[str]]:
     """
-    Simulate execution of the GHZ quantum circuit using Qiskit AerSimulator.
+    Simulate execution of the GHZ quantum circuit using Qiskit AerSimulator,
+    with automatic graceful fallback to NumPy simulation if Aer is unavailable.
 
     Returns:
         Tuple of (formatted_counts, sample_list)
         where bitstrings are ordered as q0 q1 q2 (left-to-right matching participant index 0, 1, 2).
     """
-    try:
-        simulator = AerSimulator(seed_simulator=seed)
-        job = simulator.run(qc, shots=shots)
-        result = job.result()
-        raw_counts = result.get_counts(qc)
+    basis = getattr(qc, "basis", ["Z", "Z", "Z"])
 
-        # In Qiskit, get_counts bitstrings are little-endian: "c2 c1 c0".
-        # We reformat them to big-endian order "c0 c1 c2" (q0 q1 q2) so that
-        # index 0 corresponds to Participant 1 (q0), index 1 to Participant 2 (q1), index 2 to Participant 3 (q2).
-        formatted_counts: Dict[str, int] = {}
-        for raw_bitstring, count in raw_counts.items():
-            clean_str = raw_bitstring.replace(" ", "")
-            # Reverse from Qiskit c2 c1 c0 -> c0 c1 c2
-            reordered = clean_str[::-1]
-            formatted_counts[reordered] = count
+    if HAS_QISKIT and isinstance(qc, QuantumCircuit) and AerSimulator is not None:
+        try:
+            simulator = AerSimulator(seed_simulator=seed)
+            job = simulator.run(qc, shots=shots)
+            result = job.result()
+            raw_counts = result.get_counts(qc)
 
-        # Apply simulated channel noise if requested
-        if noise_rate > 0.0:
-            rng = np.random.default_rng(seed)
-            noisy_counts: Dict[str, int] = {}
+            # In Qiskit, get_counts bitstrings are little-endian: "c2 c1 c0".
+            # We reformat them to big-endian order "c0 c1 c2" (q0 q1 q2) so that
+            # index 0 corresponds to Participant 1 (q0), index 1 to Participant 2 (q1), index 2 to Participant 3 (q2).
+            formatted_counts: Dict[str, int] = {}
+            for raw_bitstring, count in raw_counts.items():
+                clean_str = raw_bitstring.replace(" ", "")
+                reordered = clean_str[::-1]
+                formatted_counts[reordered] = count
+
+            # Apply simulated channel noise if requested
+            if noise_rate > 0.0:
+                rng = np.random.default_rng(seed)
+                noisy_counts: Dict[str, int] = {}
+                for bitstring, count in formatted_counts.items():
+                    for _ in range(count):
+                        bits = list(bitstring)
+                        for i in range(3):
+                            if rng.random() < noise_rate:
+                                bits[i] = "1" if bits[i] == "0" else "0"
+                        noisy_bs = "".join(bits)
+                        noisy_counts[noisy_bs] = noisy_counts.get(noisy_bs, 0) + 1
+                formatted_counts = noisy_counts
+
+            # Reconstruct list of individual shot samples
+            samples: List[str] = []
             for bitstring, count in formatted_counts.items():
-                for _ in range(count):
-                    bits = list(bitstring)
-                    for i in range(3):
-                        if rng.random() < noise_rate:
-                            bits[i] = "1" if bits[i] == "0" else "0"
-                    noisy_bs = "".join(bits)
-                    noisy_counts[noisy_bs] = noisy_counts.get(noisy_bs, 0) + 1
-            formatted_counts = noisy_counts
+                samples.extend([bitstring] * count)
 
-        # Reconstruct list of individual shot samples
-        samples: List[str] = []
-        for bitstring, count in formatted_counts.items():
-            samples.extend([bitstring] * count)
+            return formatted_counts, samples
 
-        return formatted_counts, samples
+        except Exception as exc:
+            logger.warning("AerSimulator failed, falling back to NumPy simulation: %s", exc)
 
+    # Fallback to pure NumPy exact simulation
+    try:
+        return _simulate_ghz_numpy(basis=basis, shots=shots, noise_rate=noise_rate, seed=seed)
     except Exception as exc:
         logger.error("Error simulating GHZ circuit: %s", exc)
         raise GHZGenerationError(f"GHZ simulation failed: {exc}") from exc
